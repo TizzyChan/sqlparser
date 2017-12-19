@@ -15,9 +15,10 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+//import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.scistor.parser.column.ScistorSelectColumn;
 import com.scistor.parser.column.ScistorColumn;
 import com.scistor.parser.column.ScistorJdbcColumn;
@@ -31,7 +32,7 @@ import com.scistor.parser.table.ScistorTable;
  * 用内层的select列,替换外层的 select列和where列
  * @author GuoLiang
  */
-public class ScistorMysqlSelectParser extends ScistorConditionParser{
+public class ScistorMysqlSelectParser extends ScistorMysqlConditionParser{
 	
 	public ScistorMysqlSelectParser(SQLStatement statement) {
 		super(statement);
@@ -56,11 +57,13 @@ public class ScistorMysqlSelectParser extends ScistorConditionParser{
 				parse(query);
 				
 				
-			}else if(query instanceof MySqlUnionQuery){
+			}//else if(query instanceof MySqlUnionQuery){
+			 else if(query instanceof SQLUnionQuery){
 
 				
 				List<SQLSelectQuery> queryLists = new ArrayList<SQLSelectQuery>();
-				MySqlUnionQuery union = (MySqlUnionQuery) query;
+				//MySqlUnionQuery union = (MySqlUnionQuery) query;
+				SQLUnionQuery union = (SQLUnionQuery) query;
 				getQueryListFromUnion(union.getLeft(), queryLists);
 				getQueryListFromUnion(union.getRight(), queryLists);
 				
@@ -87,7 +90,6 @@ public class ScistorMysqlSelectParser extends ScistorConditionParser{
 
 	private void parse(SQLSelectQuery query) throws ScistorParserException{
 		MySqlSelectQueryBlock queryBlock = (MySqlSelectQueryBlock) query;
-		
 		List<ScistorSelectColumn> selectedColumns = new ArrayList<ScistorSelectColumn>();
 		List<SQLSelectItem> items = queryBlock.getSelectList();
 		parseSelectItems(items, selectedColumns);
@@ -425,7 +427,8 @@ public class ScistorMysqlSelectParser extends ScistorConditionParser{
 		 * 目前只处理了最左侧的union,右侧的所有暂时都没有处理
 		 */
 		List<SQLSelectQuery> queryLists = new ArrayList<SQLSelectQuery>();
-		MySqlUnionQuery union = (MySqlUnionQuery) tableSource.getUnion();
+		//MySqlUnionQuery union = (MySqlUnionQuery) tableSource.getUnion();
+		SQLUnionQuery union = (SQLUnionQuery) tableSource.getUnion();
 		getQueryListFromUnion(union.getLeft(), queryLists);
 		getQueryListFromUnion(union.getRight(), queryLists);
 		

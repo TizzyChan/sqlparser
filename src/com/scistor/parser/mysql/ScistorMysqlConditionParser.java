@@ -6,7 +6,6 @@ import java.util.Map;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
-import com.alibaba.druid.sql.ast.SQLOver;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
@@ -30,10 +29,12 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
+//import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+//import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.scistor.parser.column.ScistorColumn;
 import com.scistor.parser.column.ScistorSelectColumn;
 import com.scistor.parser.column.ScistorTextColumn;
@@ -47,11 +48,11 @@ import com.scistor.parser.table.ScistorTable;
  * @author GuoLiang
  *
  */
-public abstract class ScistorConditionParser extends ScistorMysqlParser{
+public abstract class ScistorMysqlConditionParser extends ScistorMysqlParser{
 	protected int selfDefinedSubAliasID = 0;
 	protected static final String sefDefindSubAlias = "Scistor";
 	protected ScistorColumnResult result;
-	public ScistorConditionParser(SQLStatement statement) {
+	public ScistorMysqlConditionParser(SQLStatement statement) {
 		super(statement);
 	}
 
@@ -489,7 +490,8 @@ public abstract class ScistorConditionParser extends ScistorMysqlParser{
 		if(groupby == null) return;
 		List<SQLExpr> exprs = groupby.getItems();
 		for(SQLExpr e : exprs){
-			MySqlSelectGroupByExpr expr = (MySqlSelectGroupByExpr) e;
+			//MySqlSelectGroupByExpr expr = (MySqlSelectGroupByExpr) e;
+			MySqlOrderingExpr expr = (MySqlOrderingExpr) e;
 			ScistorColumn column = new ScistorColumn();
 			parseNameExpr(expr.getExpr(), column, "group by");
 			groupbyColumns.add(column);
@@ -669,15 +671,20 @@ public abstract class ScistorConditionParser extends ScistorMysqlParser{
 				column.setSubQueryAlias(subAlias);
 			}
 			return inselectedColumns;
-		}else if(subQuery instanceof MySqlUnionQuery){
-			MySqlUnionQuery union = (MySqlUnionQuery) subQuery;
+		}//else if(subQuery instanceof MySqlUnionQuery){
+		else if (subQuery instanceof SQLUnionQuery) {
+			//MySqlUnionQuery union = (MySqlUnionQuery) subQuery;
+			SQLUnionQuery union = (SQLUnionQuery)subQuery;
 			/*
 			 * 暂时没有处理
 			 */
 			SQLSelectQuery  left = union.getLeft();
 			while(!(left instanceof MySqlSelectQueryBlock)){
-				if(left instanceof MySqlUnionQuery){
+				/*if(left instanceof MySqlUnionQuery){
 					left = ((MySqlUnionQuery)left).getLeft();
+				}*/
+				if(left instanceof SQLUnionQuery){
+					left = ((SQLUnionQuery)left).getLeft();
 				}
 			}
 			return getSubQuerySelectColumns(subAlias,left);
@@ -688,8 +695,9 @@ public abstract class ScistorConditionParser extends ScistorMysqlParser{
 	protected void getQueryListFromUnion(SQLSelectQuery query,List<SQLSelectQuery> queryLists){
 		if(query instanceof MySqlSelectQueryBlock){
 			queryLists.add(query);
-		}else if(query instanceof MySqlUnionQuery){
-			MySqlUnionQuery union = (MySqlUnionQuery) query;
+		}//else if(query instanceof MySqlUnionQuery){
+		else if(query instanceof SQLUnionQuery){
+			SQLUnionQuery union = (SQLUnionQuery) query;
 			getQueryListFromUnion(union.getLeft(), queryLists);
 			getQueryListFromUnion(union.getRight(), queryLists);
 		}

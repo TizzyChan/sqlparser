@@ -13,10 +13,11 @@ import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+//import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.scistor.parser.column.ScistorSelectColumn;
 import com.scistor.parser.column.ScistorColumn;
 import com.scistor.parser.exception.ScistorParserException;
@@ -25,7 +26,7 @@ import com.scistor.parser.result.ScistorResult;
 import com.scistor.parser.result.ScistorSQLType;
 import com.scistor.parser.table.ScistorTable;
 
-public class ScistorMysqlDeleteParser  extends ScistorConditionParser {
+public class ScistorMysqlDeleteParser  extends ScistorMysqlConditionParser {
 
 	protected List<ScistorTable> tables;
 	public ScistorMysqlDeleteParser(SQLStatement statement) {
@@ -264,7 +265,8 @@ public class ScistorMysqlDeleteParser  extends ScistorConditionParser {
 				 * 
 				 */
 				List<SQLSelectQuery> queryLists = new ArrayList<SQLSelectQuery>();
-				MySqlUnionQuery union = (MySqlUnionQuery) subUnion.getUnion();
+				//MySqlUnionQuery union = (MySqlUnionQuery) subUnion.getUnion();
+				SQLUnionQuery union = (SQLUnionQuery) subUnion.getUnion();
 				getQueryListFromUnion(union.getLeft(), queryLists);
 				getQueryListFromUnion(union.getRight(), queryLists);
 				
