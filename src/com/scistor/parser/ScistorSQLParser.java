@@ -9,10 +9,12 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
 import com.scistor.parser.authentication.ScistorAuthenticate;
 import com.scistor.parser.exception.ScistorParserException;
 import com.scistor.parser.factory.ScistorMysqlParserFactory;
 import com.scistor.parser.factory.ScistorParserFactory;
+import com.scistor.parser.oracle.ScistorOracleParserFactory;
 import com.scistor.parser.result.ScistorResult;
 
 /**
@@ -31,14 +33,17 @@ public class ScistorSQLParser {
 		parse(sql);
 	}
 	public void parse(String sql) throws ScistorParserException{
-		MySqlStatementParser parser = new MySqlStatementParser(sql);
+		//MySqlStatementParser parser = new MySqlStatementParser(sql);
+		OracleStatementParser parser = new OracleStatementParser(sql);
 		statement = parser.parseStatement();
-		ScistorParserFactory factory = new ScistorMysqlParserFactory();
+		//ScistorParserFactory factory = new ScistorMysqlParserFactory();
+		ScistorParserFactory factory = new ScistorOracleParserFactory();
 		sparser = null;
 		if(statement instanceof SQLSelectStatement){
 			sparser = factory.createSelectParser(statement);
 			
-		}else if(statement instanceof MySqlInsertStatement){
+		}
+		/*else if(statement instanceof MySqlInsertStatement){
 			sparser = factory.createInsertParser(statement);
 		
 		}else if(statement instanceof MySqlUpdateStatement){
@@ -58,7 +63,7 @@ public class ScistorSQLParser {
 			
 		}else {
 			sparser = factory.createOtherParser(statement);
-		}
+		}*/
 		
 		this.result = sparser.getParseResult();
 	}
