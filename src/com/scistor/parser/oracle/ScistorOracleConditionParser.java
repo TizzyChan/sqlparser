@@ -145,7 +145,7 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 			column.setName(e.getName());
 			column.setOwner(e.getOwner().toString());
 		}else if(expr instanceof SQLAggregateExpr){
-			//当为聚合函数的时候
+			//当为聚合函数和分析函数的时候
 			SQLAggregateExpr e = (SQLAggregateExpr)expr;
 			column.setAggregator(true);
 			
@@ -185,7 +185,6 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 			
 		}else if(expr instanceof SQLMethodInvokeExpr){
 			SQLMethodInvokeExpr e = (SQLMethodInvokeExpr) expr;
-			//TODO 方法判断,暂时不跑出异常。
 			//不包含聚合函数和分析函数
 			if(e.getMethodName().toUpperCase().equals("DECODE")||
 					e.getMethodName().toUpperCase().equals("NVL")||
@@ -289,8 +288,8 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 			parseWhereTextExpr(left, column);
 			whereColumns.add(column);
 		}else{
-			parseWhere(left,whereColumns, null);
-			parseWhere(right, whereColumns,null);
+			parseHaving(left,whereColumns, null);
+			parseHaving(right, whereColumns,null);
 		}
 	}
 	
@@ -491,8 +490,14 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 		for(SQLExpr e : exprs){
 			//OracleSelectGroupByExpr expr = (OracleSelectGroupByExpr) e;
 			ScistorColumn column = new ScistorColumn();
-			parseNameExpr(e, column, "group by");
-			groupbyColumns.add(column);
+			List<ScistorColumn> columnList = new ArrayList<ScistorColumn>();
+			columnList.add(column);
+			parseNameExpr(e, columnList, "group by");
+			for(ScistorColumn subColumn:columnList) {
+				if(subColumn.getName() != null) {
+					groupbyColumns.add(subColumn);
+				}
+			}
 		}
 		SQLExpr having = groupby.getHaving();
 		parseHaving(having, groupbyColumns, null);
@@ -541,8 +546,15 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 			SQLAggregateExpr expr = (SQLAggregateExpr) having;
 			SQLExpr col = expr.getArguments().get(0);
 			ScistorColumn column = new ScistorColumn();
-			parseNameExpr(col, column, "having "+expr.getMethodName());
-			havingColumns.add(column);
+			List<ScistorColumn> columnList = new ArrayList<ScistorColumn>();
+			columnList.add(column);
+			parseNameExpr(col, columnList, "having "+expr.getMethodName());
+			for(ScistorColumn subColumn:columnList) {
+				if(subColumn.getName() != null) {
+					havingColumns.add(subColumn);
+				}
+			}
+			
 		} else if (having instanceof SQLMethodInvokeExpr) {
 			SQLMethodInvokeExpr expr = (SQLMethodInvokeExpr) having;
 			throw new ScistorParserException("SQL ERROR:'"+expr.getMethodName()+"' is not supported in having conditon");
@@ -554,13 +566,21 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 		List<SQLSelectOrderByItem> items = orderby.getItems();
 		for(SQLSelectOrderByItem item : items){
 			SQLExpr expr = item.getExpr();
+			List<ScistorColumn> columnList = new ArrayList<ScistorColumn>();
 			ScistorColumn column = new ScistorColumn();
-			parseNameExpr(expr, column, "order by");
-			orderbyColumns.add(column);
+			columnList.add(column);
+			parseNameExpr(expr, columnList, "order by");
+			for(int i=0;i<columnList.size();i++) {
+				if(columnList.get(i).getName() != null) {
+					orderbyColumns.add(columnList.get(i));
+				}
+			}
 		}
 	}
 	
-	protected void parseNameExpr(SQLExpr expr,ScistorColumn column,String param) throws ScistorParserException{
+	protected void parseNameExpr(SQLExpr expr,List<ScistorColumn> columnList,String param) throws ScistorParserException{
+		int index = columnList.size()-1;
+		ScistorColumn column = columnList.get(index);
 		if(expr instanceof SQLIdentifierExpr){
 			SQLIdentifierExpr e = (SQLIdentifierExpr)expr;
 			column.setName(e.getName());
@@ -568,9 +588,70 @@ public abstract class ScistorOracleConditionParser  extends ScistorOracleParser{
 			SQLPropertyExpr e = (SQLPropertyExpr)expr;
 			column.setName(e.getName());
 			column.setOwner(e.getOwner().toString());
-		}else{
-			throw new ScistorParserException("SQL ERROR: "+expr.toString()+" is not supported syntax in "+param+" conditon");
-		}
+		}else if(expr instanceof SQLAggregateExpr) {
+			SQLAggregateExpr e = (SQLAggregateExpr)expr;
+		
+			SQLExpr aexpr = e.getArguments().get(0);
+			if(aexpr instanceof SQLNumericLiteralExpr||aexpr instanceof SQLIntegerExpr) {
+				//throw new ScistorParserException("SQL ERROR : "+aexpr.toString()+" is not supported syntax in "+e.getMethodName());
+			    return;
+			}
+			parseNameExpr(aexpr, columnList,param);
+			
+			if(e.getOver() != null){
+				if(e.getOver().getOrderBy()!=null){
+					SQLOrderBy orderBy = (SQLOrderBy) e.getOver().getOrderBy();
+					List<SQLSelectOrderByItem> items = orderBy.getItems();
+					for(int i=0;i<items.size();i++){
+						columnList.add(new ScistorColumn());
+						parseNameExpr(items.get(i).getExpr(),columnList,param);
+					}
+
+				}
+				
+				ArrayList<SQLExpr> partitionByList = (ArrayList<SQLExpr>) e.getOver().getPartitionBy();
+				for(int i = 0;i<partitionByList.size();i++){
+					columnList.add(new ScistorColumn());
+					parseNameExpr(partitionByList.get(i),columnList,param);
+				}
+			}
+			
+			if(e.getKeep() != null) {
+				SQLOrderBy orderBy = (SQLOrderBy) e.getKeep().getOrderBy();
+				List<SQLSelectOrderByItem> items = orderBy.getItems();
+				for(int i=0;i<items.size();i++){
+					columnList.add(new ScistorColumn());
+					parseNameExpr(items.get(i).getExpr(),columnList,param);
+				}
+			}
+		}else if(expr instanceof SQLMethodInvokeExpr) {
+			SQLMethodInvokeExpr e = (SQLMethodInvokeExpr) expr;
+			if(e.getMethodName().toUpperCase().equals("DECODE")||
+					e.getMethodName().toUpperCase().equals("NVL")||
+					e.getMethodName().toUpperCase().equals("NVL2")||
+					e.getMethodName().toUpperCase().equals("TRIM")||
+					e.getMethodName().toUpperCase().equals("SUBSTR")||
+					e.getMethodName().toUpperCase().equals("INSTR")||
+					e.getMethodName().toUpperCase().equals("REPLACE")||
+					e.getMethodName().toUpperCase().equals("LENGTH")||
+					e.getMethodName().toUpperCase().equals("LPAD")||
+					e.getMethodName().toUpperCase().equals("RPAD")||
+					e.getMethodName().toUpperCase().equals("TO_DATE")||
+					e.getMethodName().toUpperCase().equals("TO_CHAR")){
+				List<SQLExpr> exprList = (List<SQLExpr>)e.getParameters();
+				for(int i=0;i<exprList.size();i++){
+					SQLExpr subExpr = exprList.get(i);
+					if(i>0){
+						columnList.add(new ScistorColumn());
+					}
+					parseNameExpr(subExpr,columnList,param);
+				} 
+			}
+		}/*else{
+			if(!param.equals("order by")) {
+				throw new ScistorParserException("SQL ERROR: "+expr.toString()+" is not supported syntax in "+param+" conditon");
+			}
+		}*/
 	}
 	/**
 	 * 当时join情况的时候找其可能对应的表

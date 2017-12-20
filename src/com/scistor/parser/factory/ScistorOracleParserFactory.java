@@ -1,4 +1,4 @@
-package com.scistor.parser.oracle;
+package com.scistor.parser.factory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.scistor.parser.oracle.ScistorOracleAlterParser;
@@ -10,7 +10,6 @@ import com.scistor.parser.oracle.ScistorOracleParser;
 import com.scistor.parser.oracle.ScistorOracleSelectParser;
 import com.scistor.parser.oracle.ScistorOracleUpdateParser;
 import com.scistor.parser.oracle.ScistorOtherParser;
-import com.scistor.parser.factory.ScistorParserFactory;
 
 public class ScistorOracleParserFactory implements ScistorParserFactory{
 

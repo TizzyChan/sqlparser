@@ -13,8 +13,8 @@ import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
 import com.scistor.parser.authentication.ScistorAuthenticate;
 import com.scistor.parser.exception.ScistorParserException;
 import com.scistor.parser.factory.ScistorMysqlParserFactory;
+import com.scistor.parser.factory.ScistorOracleParserFactory;
 import com.scistor.parser.factory.ScistorParserFactory;
-import com.scistor.parser.oracle.ScistorOracleParserFactory;
 import com.scistor.parser.result.ScistorResult;
 
 /**
